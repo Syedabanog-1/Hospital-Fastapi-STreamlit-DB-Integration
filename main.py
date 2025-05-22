@@ -68,13 +68,6 @@ def add_doctor(doctor: Doctor, db: Session = Depends(get_db)):
 def get_doctors(db: Session = Depends(get_db)):
     return db.query(DoctorDB).all()
 
-@app.get("/doctors/{doctor_id}")
-def get_doctor(doctor_id: int, db: Session = Depends(get_db)):
-    doctor = db.query(DoctorDB).filter(DoctorDB.id == doctor_id).first()
-    if not doctor:
-        raise HTTPException(status_code=404, detail="Doctor not found")
-    return doctor
-
 @app.put("/doctors/{doctor_id}")
 def update_doctor(doctor_id: int, doctor_update: DoctorUpdate, db: Session = Depends(get_db)):
     doctor = db.query(DoctorDB).filter(DoctorDB.id == doctor_id).first()
@@ -107,13 +100,6 @@ def add_patient(patient: Patient, db: Session = Depends(get_db)):
 @app.get("/patients/")
 def get_patients(db: Session = Depends(get_db)):
     return db.query(PatientDB).all()
-
-@app.get("/patients/{patient_id}")
-def get_patient(patient_id: int, db: Session = Depends(get_db)):
-    patient = db.query(PatientDB).filter(PatientDB.id == patient_id).first()
-    if not patient:
-        raise HTTPException(status_code=404, detail="Patient not found")
-    return patient
 
 @app.put("/patients/{patient_id}")
 def update_patient(patient_id: int, patient_update: PatientUpdate, db: Session = Depends(get_db)):

@@ -1,13 +1,12 @@
 import streamlit as st
 import requests
 
-BASE_URL = "http://localhost:8000"  # Update this if deploying to a server
+BASE_URL = "http://localhost:8000"
 
 st.title("🏥 Hospital Record Dashboard")
 
 menu = st.sidebar.selectbox("Select Option", ["Manage Doctors", "Manage Patients"])
 
-# === Doctor Section ===
 if menu == "Manage Doctors":
     st.header("👨‍⚕️ Doctor Management")
 
@@ -31,7 +30,7 @@ if menu == "Manage Doctors":
         name = st.text_input("Updated Name")
         specialty = st.text_input("Updated Specialty")
         if st.button("Update Doctor"):
-            res = requests.put(f"{BASE_URL}/doctors/{id}", json={"id": id, "name": name, "specialty": specialty})
+            res = requests.put(f"{BASE_URL}/doctors/{id}", json={"name": name, "specialty": specialty})
             st.success(res.json().get("message"))
 
     elif action == "Delete":
@@ -40,7 +39,6 @@ if menu == "Manage Doctors":
             res = requests.delete(f"{BASE_URL}/doctors/{id}")
             st.success(res.json().get("message"))
 
-# === Patient Section ===
 if menu == "Manage Patients":
     st.header("🧑‍🦽 Patient Management")
 
@@ -64,7 +62,7 @@ if menu == "Manage Patients":
         name = st.text_input("Updated Name")
         disease = st.text_input("Updated Disease")
         if st.button("Update Patient"):
-            res = requests.put(f"{BASE_URL}/patients/{id}", json={"id": id, "name": name, "disease": disease})
+            res = requests.put(f"{BASE_URL}/patients/{id}", json={"name": name, "disease": disease})
             st.success(res.json().get("message"))
 
     elif action == "Delete":
