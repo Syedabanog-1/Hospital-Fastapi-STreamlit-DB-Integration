@@ -3,29 +3,30 @@ import requests
 import pandas as pd
 from fpdf import FPDF
 from io import BytesIO
-
+import tempfile
 # === Login Setup ===
 def login():
     st.title("🔐 Admin Login")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     if st.button("Login"):
-        if username == "admin" and password == "password123":
-            st.session_state["logged_in"] = True
-            st.experimental_rerun()
-        else:
-            st.error("Invalid credentials")
+        try:
+            res = requests.post(f"{BASE_URL}/auth/login", json={"username": username, "password": password})
+            if res.status_code == 200:
+                st.session_state["logged_in"] = True
+                st.experimental_rerun()
+            else:
+                st.error("Invalid credentials")
+        except Exception as e:
+            st.error(f"Login failed: {e}")
+
 
 def logout():
     if st.sidebar.button("🚪 Logout"):
         st.session_state["logged_in"] = False
         st.experimental_rerun()
 
-if "logged_in" not in st.session_state:
-    st.session_state["logged_in"] = False
-
-# === Auth check ===
-if not st.session_state["logged_in"]:
+if not st.session_state.get("logged_in", False):
     login()
     st.stop()
 else:
@@ -40,20 +41,17 @@ BASE_URL = st.sidebar.text_input("FastAPI Base URL", default_url)
 def check_api_health():
     try:
         res = requests.get(f"{BASE_URL}/doctors/")
-        return res.status_code == 200 or res.status_code == 404 or isinstance(res.json(), list)
+        return res.status_code in [200, 404] or isinstance(res.json(), list)
     except Exception:
         return False
 
-# === Show Health Status ===
 if not check_api_health():
-    st.error("❌ Could not connect to FastAPI backend. Please check that it's running at the given BASE URL.")
+    st.error("❌ Could not connect to FastAPI backend. Check the BASE URL.")
     st.stop()
 else:
-    st.success("✅ FastAPI backend is up and running.")
+    st.success("✅ FastAPI backend is running.")
 
-# === App Title ===
 st.title("🏥 Hospital Record Dashboard")
-
 menu = st.sidebar.selectbox("Select Option", ["Manage Doctors", "Manage Patients"])
 
 # === Helper Function ===
@@ -69,11 +67,12 @@ def show_message(response):
     else:
         st.error(f"Error {response.status_code}: {data.get('detail', response.text)}")
 
-# === Export Functions ===
 def export_to_csv(data, filename):
     df = pd.DataFrame(data)
     csv = df.to_csv(index=False).encode('utf-8')
     st.download_button("Download CSV", data=csv, file_name=filename, mime='text/csv')
+
+    
 
 def export_to_pdf(data, title):
     pdf = FPDF()
@@ -84,12 +83,14 @@ def export_to_pdf(data, title):
         for key, value in item.items():
             pdf.cell(200, 10, txt=f"{key.capitalize()}: {value}", ln=True)
         pdf.cell(200, 5, txt="", ln=True)
-    pdf_output = BytesIO()
-    pdf.output(pdf_output)
-    pdf_output.seek(0)
-    st.download_button("Download PDF", data=pdf_output, file_name=f"{title}.pdf", mime="application/pdf")
 
-# === Doctors Management ===
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+        pdf.output(tmp_file.name)
+        with open(tmp_file.name, "rb") as f:
+            st.download_button("Download PDF", data=f.read(), file_name=f"{title}.pdf", mime="application/pdf")
+
+
+# === Doctor Management ===
 if menu == "Manage Doctors":
     st.header("👨‍⚕️ Doctor Management")
     action = st.selectbox("Choose Action", ["Add", "View", "Update", "Delete"], key="doctor_action")
@@ -112,7 +113,7 @@ if menu == "Manage Doctors":
             if doctors:
                 search_name = st.text_input("Search by Name").lower()
                 search_specialty = st.text_input("Search by Specialty").lower()
-                filtered = [doc for doc in doctors if (search_name in doc["name"].lower()) and (search_specialty in doc["specialty"].lower())]
+                filtered = [doc for doc in doctors if search_name in doc["name"].lower() and search_specialty in doc["specialty"].lower()]
                 st.table(filtered if filtered else doctors)
                 export_to_csv(filtered if filtered else doctors, "doctors.csv")
                 export_to_pdf(filtered if filtered else doctors, "Doctors Report")
@@ -130,10 +131,8 @@ if menu == "Manage Doctors":
                 st.warning("Please provide at least one field to update.")
             else:
                 update_data = {}
-                if name:
-                    update_data["name"] = name
-                if specialty:
-                    update_data["specialty"] = specialty
+                if name: update_data["name"] = name
+                if specialty: update_data["specialty"] = specialty
                 res = requests.put(f"{BASE_URL}/doctors/{id}", json=update_data)
                 show_message(res)
 
@@ -143,7 +142,7 @@ if menu == "Manage Doctors":
             res = requests.delete(f"{BASE_URL}/doctors/{id}")
             show_message(res)
 
-# === Patients Management ===
+# === Patient Management ===
 elif menu == "Manage Patients":
     st.header("🧑‍🦽 Patient Management")
     action = st.selectbox("Choose Action", ["Add", "View", "Update", "Delete"], key="patient_action")
@@ -166,7 +165,7 @@ elif menu == "Manage Patients":
             if patients:
                 search_name = st.text_input("Search by Name").lower()
                 search_disease = st.text_input("Search by Disease").lower()
-                filtered = [pat for pat in patients if (search_name in pat["name"].lower()) and (search_disease in pat["disease"].lower())]
+                filtered = [pat for pat in patients if search_name in pat["name"].lower() and search_disease in pat["disease"].lower()]
                 st.table(filtered if filtered else patients)
                 export_to_csv(filtered if filtered else patients, "patients.csv")
                 export_to_pdf(filtered if filtered else patients, "Patients Report")
@@ -184,10 +183,8 @@ elif menu == "Manage Patients":
                 st.warning("Please provide at least one field to update.")
             else:
                 update_data = {}
-                if name:
-                    update_data["name"] = name
-                if disease:
-                    update_data["disease"] = disease
+                if name: update_data["name"] = name
+                if disease: update_data["disease"] = disease
                 res = requests.put(f"{BASE_URL}/patients/{id}", json=update_data)
                 show_message(res)
 
@@ -196,4 +193,3 @@ elif menu == "Manage Patients":
         if st.button("Delete Patient"):
             res = requests.delete(f"{BASE_URL}/patients/{id}")
             show_message(res)
-
