@@ -12,6 +12,7 @@ def login():
     if st.button("Login"):
         if username == "admin" and password == "password123":
             st.session_state["logged_in"] = True
+            st.success("Login successful. Redirecting...")
             st.experimental_rerun()
         else:
             st.error("Invalid credentials")
@@ -21,6 +22,7 @@ def logout():
         st.session_state["logged_in"] = False
         st.experimental_rerun()
 
+# === Initialize session state if not present ===
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 
@@ -196,4 +198,3 @@ elif menu == "Manage Patients":
         if st.button("Delete Patient"):
             res = requests.delete(f"{BASE_URL}/patients/{id}")
             show_message(res)
-
