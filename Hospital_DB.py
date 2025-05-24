@@ -4,6 +4,12 @@ import pandas as pd
 from fpdf import FPDF
 from io import BytesIO
 import tempfile
+
+# === Sidebar Configuration (Moved to Top) ===
+st.sidebar.header("🔧 Settings")
+default_url = "http://localhost:8000"
+BASE_URL = st.sidebar.text_input("FastAPI Base URL", default_url)
+
 # === Login Setup ===
 def login():
     st.title("🔐 Admin Login")
@@ -14,28 +20,23 @@ def login():
             res = requests.post(f"{BASE_URL}/auth/login", json={"username": username, "password": password})
             if res.status_code == 200:
                 st.session_state["logged_in"] = True
-                st.experimental_rerun()
+                st.rerun()  # ✅ UPDATED
             else:
                 st.error("Invalid credentials")
         except Exception as e:
             st.error(f"Login failed: {e}")
 
-
 def logout():
     if st.sidebar.button("🚪 Logout"):
         st.session_state["logged_in"] = False
-        st.experimental_rerun()
+        st.rerun()  # ✅ UPDATED
 
+# === Check Login ===
 if not st.session_state.get("logged_in", False):
     login()
     st.stop()
 else:
     logout()
-
-# === Sidebar Configuration ===
-st.sidebar.header("🔧 Settings")
-default_url = "http://localhost:8000"
-BASE_URL = st.sidebar.text_input("FastAPI Base URL", default_url)
 
 # === Health Check ===
 def check_api_health():
@@ -54,14 +55,13 @@ else:
 st.title("🏥 Hospital Record Dashboard")
 menu = st.sidebar.selectbox("Select Option", ["Manage Doctors", "Manage Patients"])
 
-# === Helper Function ===
+# === Helper Functions ===
 def show_message(response):
     try:
         data = response.json()
     except Exception:
         st.error(f"Unexpected Error: {response.text}")
         return
-
     if response.status_code in (200, 201):
         st.success(data.get("message", "Success"))
     else:
@@ -72,8 +72,6 @@ def export_to_csv(data, filename):
     csv = df.to_csv(index=False).encode('utf-8')
     st.download_button("Download CSV", data=csv, file_name=filename, mime='text/csv')
 
-    
-
 def export_to_pdf(data, title):
     pdf = FPDF()
     pdf.add_page()
@@ -83,12 +81,10 @@ def export_to_pdf(data, title):
         for key, value in item.items():
             pdf.cell(200, 10, txt=f"{key.capitalize()}: {value}", ln=True)
         pdf.cell(200, 5, txt="", ln=True)
-
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
         pdf.output(tmp_file.name)
         with open(tmp_file.name, "rb") as f:
             st.download_button("Download PDF", data=f.read(), file_name=f"{title}.pdf", mime="application/pdf")
-
 
 # === Doctor Management ===
 if menu == "Manage Doctors":

@@ -1,19 +1,17 @@
-# FastAPI & Backend-related
+# Backend
 fastapi
 uvicorn
 sqlalchemy
 pydantic
-passlib[bcrypt]
+passlib==1.7.4
+bcrypt==3.2.0
 python-multipart
 
-# Streamlit & Frontend-related
+# Frontend
 streamlit
 requests
 pandas
 fpdf
 
-# Optional: If working with SQLite (already covered by Python stdlib)
-# If using PostgreSQL or MySQL in future, add: psycopg2 or mysqlclient
-
-# If you need to enable CORS
+# CORS support
 starlette
